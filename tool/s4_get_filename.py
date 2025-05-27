@@ -1,6 +1,6 @@
 import os
 
-dataset = "BIWI"
+dataset = "vocaset"
 
 folder_list = {
     f"user_study/{dataset}/CodeTalker",
@@ -8,7 +8,7 @@ folder_list = {
     f"user_study/{dataset}/GT",
     f"user_study/{dataset}/MeshTalk",
     f"user_study/{dataset}/voca",
-    f"user_study/{dataset}/SelfTalk",
+    f"user_study/{dataset}/CorrTalk",
     f"user_study/{dataset}/DiffSpeaker",
     f"user_study/{dataset}/TalkingStyle",
     f"user_study/{dataset}/FaceDiffuser",

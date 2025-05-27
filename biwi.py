@@ -1,24 +1,27 @@
 import streamlit as st
 import time
-from datetime import datetime, timedelta
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.mime.application import MIMEApplication
+import random
 import poplib
 from email.parser import Parser
+from datetime import datetime, timedelta
 
+random_range = 10  #试题数量
+
+   
 @st.cache_data
 def send_email(email, password, array):
     # 构建邮件主体
     msg = MIMEMultipart()
     msg['From'] = email
     msg['To'] = email  # 收件人邮箱
-    msg['Subject'] = fr'{dataset} Number of submissions'
+    msg['Subject'] = fr'{dataset} Number of submissions {sum(array)}/{random_range*2}'
     
     # 邮件正文
-    #string = ''.join([str(element) for element in array])
-    string = str(array)
+    string = ''.join([str(element) for element in array])
     text = MIMEText(string)
     msg.attach(text)
      
@@ -43,18 +46,18 @@ def read_email(myemail, password):
         mail_server.pass_(password)
 
         # 搜索符合特定主题的邮件
-        num_messages = len(mail_server.list()[1])
+        num_messages = len(mail_server.list()[1]) # 获取邮箱中邮件的数量
         content = None  # 初始化变量
         found = False
-        for i in range(num_messages, 0, -1):
-            raw_email = b'\n'.join(mail_server.retr(i)[1]).decode('utf-8')
-            email_message = Parser().parsestr(raw_email)
-            subject = email_message['Subject']
+        for i in range(num_messages, 0, -1): # 开始，逐个检查每封邮件
+            raw_email = b'\n'.join(mail_server.retr(i)[1]).decode('utf-8') # 检索第i封邮件的原始内容，并将其解码为字符串
+            email_message = Parser().parsestr(raw_email) # 使用email.parser.Parser解析原始邮件内容，得到一个Message对象
+            subject = email_message['Subject'] # 获取邮件的主题
             
-            if subject == subject_to_search:
-                for part in email_message.walk():
-                    if part.get_content_type() == "text/plain":
-                        content = part.get_payload(decode=True).decode(part.get_content_charset())
+            if subject and subject.startswith(subject_to_search): # 如果邮件主题以subject_to_search开头，则进一步处理该邮件
+                for part in email_message.walk(): # 使用walk方法遍历邮件的所有部分
+                    if part.get_content_type() == "text/plain": # 如果部分的Content-Type是text/plain，则提取其内容并解码。
+                        content = part.get_payload(decode=True).decode(part.get_content_charset()) # 一旦找到符合条件的邮件内容，设置found为True并跳出循环
                         found = True
                         break  # 找到满足条件的邮件后及时跳出循环
                 if found:
@@ -63,8 +66,7 @@ def read_email(myemail, password):
         # 关闭连接
         mail_server.quit()
         array = [int(char) for char in content]
-        result = int("".join(map(str, array)))
-        return result
+        return array
 
     except Exception as e:
         st.error('网络问题，请刷新页面')
@@ -89,7 +91,7 @@ def read_email_(myemail, password):
             email_message = Parser().parsestr(raw_email)
             subject = email_message['Subject']
             
-            if subject == subject_to_search:
+            if subject and subject.startswith(subject_to_search):
                 for part in email_message.walk():
                     if part.get_content_type() == "text/plain":
                         content = part.get_payload(decode=True).decode(part.get_content_charset())
@@ -101,26 +103,66 @@ def read_email_(myemail, password):
         # 关闭连接
         mail_server.quit()
         array = [int(char) for char in content]
-        result = int("".join(map(str, array)))
-        return result
+        return array
 
     except Exception as e:
         st.error('网络问题，请刷新页面')
 
+def instrunction():
+    st.subheader("Instructions: ")
+    text1 = 'Please watch the short videos (duration 4~7s) of two animated talking heads. \
+            You need to choose the talking head (the :blue[left] or the :blue[right]) that moves more naturally in terms of the full :blue[face] and the :blue[lips]. '
+    text2 = 'Please :blue[turn on the sound] on your computer while you are watching the videos.'
+    st.markdown(text1)
+    st.markdown(text2)
+
+def QA(data_face, data_lip, num):
+    # 定义问题和选项
+    question_1 = "Comparing the two full :blue[faces], which one looks more :blue[realistic]?"
+    options_1 = ["", "Left", "Right"]
+    question_2 = "Comparing the :blue[lips] of two faces, which one is more :blue[in sync with audio]?"
+    options_2 = ["", "Left", "Right"]
+
+    # 显示问题并获取用户的答案
+    answer_1 = st.radio(label=question_1, options=options_1, key=fr"button{num}.1")
+    answer_2 = st.radio(label=question_2, options=options_2, key=fr"button{num}.2")
+
+    # 以1/0数据保存
+    ans1 = get_ans(answer_1)
+    ans2 = get_ans(answer_2)
+
+    # 保存结果到列表
+    data_face[num-1] = ans1
+    data_lip[num-1] = ans2
+
+# 将用户的答案转化为1/0
+def get_ans(answer_str):
+    if "Left" in answer_str:
+        return "1"
+    elif "Right" in answer_str:
+        return "0"
+    elif "" in answer_str:
+        return ""
+    
 @st.cache_data
-def data_collection(email, password, human_likeness, smoothness, semantic_accuracy, count):
+def play_video(file_name):
+    video_bytes = open(file_name, 'rb').read()
+    return video_bytes
+
+@st.cache_data
+def data_collection(email, password, data_face, data_lip, random_num, array):
     # 发送内容
-    data1 = ''.join(str(x) for x in human_likeness)
-    data2 = ''.join(str(x) for x in smoothness)
-    data3 = ''.join(str(x) for x in semantic_accuracy)
-    string = data1 + "\n" + data2 + "\n" + data3
-    localtime = datetime.strptime(time.strftime('%m-%d %H-%M-%S', time.localtime()), '%m-%d %H-%M-%S')
-    localtime += timedelta(hours=8)
+    data1 = ''.join(str(x) for x in data_face)
+    data2 = ''.join(str(x) for x in data_lip)
+    string = "face:" + data1 + "\n" + "lip:" + data2
+    localtime = localtime = datetime.now()
     seconds = localtime.strftime('%S')
-    localtime = localtime.strftime('%m-%d %H-%M-%S')
+    
+    localtime += timedelta(hours=8)
+    localtime = localtime.strftime('%m-%d %H:%M:%S')
     # 打开文件并指定写模式
-    ID = f"{count}-{seconds}"
-    file_name = dataset + ' ' + str(count) + ' ' + localtime + ".txt"
+    ID = dataset + "_" + str(random_num+1) + "_" + str(array[random_num]) + "_" + seconds
+    file_name = ID + ".txt"
     file = open(file_name, "w")
     # 将字符串写入文件
     file.write(string)
@@ -131,7 +173,7 @@ def data_collection(email, password, human_likeness, smoothness, semantic_accura
     msg = MIMEMultipart()
     msg['From'] = email
     msg['To'] = email  # 收件人邮箱
-    msg['Subject'] = dataset + ' ' + str(count) + ' '  + localtime
+    msg['Subject'] = ID
 
     # 邮件正文
     text = MIMEText(string)
@@ -154,156 +196,89 @@ def data_collection(email, password, human_likeness, smoothness, semantic_accura
 
     return ID, localtime
 
-@st.cache_data
-def instrunction():
-    st.header("Instructions: ")
-    st.markdown('''请仔细阅读以下对本研究的介绍，您需要在这几个虚拟人之间进行评分：''')
-    st.markdown('''##### 1. 手势真实性评分''')
-    st.markdown('''请观察视频中虚拟角色的手势，并判断其是否符合人类的真实行为习惯。重点关注手臂动作及整体姿势的真实感。''')
-    st.markdown('''##### 2. 手势自然性评分''')
-    st.markdown('''请评估视频中的手势是否流畅、协调，避免出现僵硬或过于突兀的手势动作。自然的手势应该是具有一定自由度、连贯性的。''')
-    st.markdown('''##### 3. 手势语义准确度评分''')
-    st.markdown('''观察虚拟角色的手势是否有效地传达其意图。判断这些手势是否有助于增强视频中的语音内容，是否能够更清晰地传递视频中表达的意思。''')
-    st.markdown('''###### 注意事项：本实验专注于手势动作，不需要关注面部表情。''')
-
-def QA(human_likeness, smoothness, semantic_accuracy, num, method_num):
-    number = (num-1) * method_num - 1
-
-    st.markdown('''##### 1.手势真实性评分''')
-    human_likeness[number+1] = st.slider("第一个人", 1, 5, 1, key=f"button{num}.1")
-    human_likeness[number+2] = st.slider("第二个人", 1, 5, 1, key=f"button{num}.2")
-    human_likeness[number+3] = st.slider("第三个人", 1, 5, 1, key=f"button{num}.3")
-    #human_likeness[number+4] = st.slider("第四个人", 1, 5, 1, key="button4")
-
-    st.markdown('''##### 2.手势自然性评分''')
-    smoothness[number+1] = st.slider("第一个人", 1, 5, 1, key=f"button{num}.5")
-    smoothness[number+2] = st.slider("第二个人", 1, 5, 1, key=f"button{num}.6")
-    smoothness[number+3] = st.slider("第三个人", 1, 5, 1, key=f"button{num}.7")
-    #smoothness[number+4] = st.slider("第四个人", 1, 5, 1, key="button8")
-
-    st.markdown('''##### 3.手势语义准确性评分''')
-    semantic_accuracy[number+1] = st.slider("第一个人", 1, 5, 1, key=f"button{num}.9")
-    semantic_accuracy[number+2] = st.slider("第二个人", 1, 5, 1, key=f"button{num}.10")
-    semantic_accuracy[number+3] = st.slider("第三个人", 1, 5, 1, key=f"button{num}.11")
-    #semantic_accuracy[number+4] = st.slider("第四个人", 1, 5, 1, key="button12")
-
-    # 检查所有评分是否都为1
-    if (human_likeness[number+1] == 1 and human_likeness[number+2] == 1 and human_likeness[number+3] == 1 and
-        smoothness[number+1] == 1 and smoothness[number+2] == 1 and smoothness[number+3] == 1 and
-        semantic_accuracy[number+1] == 1 and semantic_accuracy[number+2] == 1 and semantic_accuracy[number+3] == 1):
-        return False
-    return True  
-    
-@st.cache_data
-def play_video(file_name):
-    video_bytes = open(file_name, 'rb').read()
-    return video_bytes
-
-def page(video_num, method_num):
+def page(random_num):
     instrunction()
-    file = open(r"filenames.txt", "r", encoding='utf-8') 
+    file = open(fr"filenames_{dataset}_after.txt", "r", encoding='utf-8') 
     file_list = file.readlines()
     file.close()
 
-    def switch_page(page_num):
-        st.session_state["page_num"] = page_num
-        st.session_state["human_likeness"] = human_likeness 
-        st.session_state["smoothness"] = smoothness 
-        st.session_state["semantic_accuracy"] = semantic_accuracy
-        st.rerun()  # 清空页面
+    if "button_clicked" not in st.session_state:
+        st.session_state.button_clicked = False
+        
+    for num in range(video_num):
+        # 显示页面内容
+        # st.write(f'这是第{num+1+random_num*video_num}个视频，名称为{file_list[num+random_num*video_num].rstrip()}')
+        st.subheader(fr"Video {num+1}")
+        video_bytes = play_video(file_list[num+random_num*video_num].rstrip()) # 读取视频文件并播放
+        st.video(video_bytes)
 
-    # 通过 st.session_state 实现页面跳转
-    if "page_num" not in st.session_state:
-        st.session_state["page_num"] = 1
+        st.write("Please answer the following questions, after you watch the video. ")
+        QA(data_face, data_lip, num+1)
 
-    num = st.session_state["page_num"]
+    st.divider()
+    
+    if not st.session_state.button_clicked:
+        if st.button("Submit results"):
+            if any(x == "" for x in data_face or x == "" for x in data_lip):
+                st.warning("Please answer all questions before submitting the results.")
+            if not any(x == "" for x in data_face or x == "" for x in data_lip):
+                st.write('It will take about 10 seconds, please be patient and wait. ')
+                array = read_email_(myemail, password)
+                array[random_num]+=1
+                send_email(myemail, password, array)
+                ID, localtime = data_collection(myemail, password, data_face, data_lip, random_num, array)
+                st.divider()
+                st.markdown(':blue[Please take a screenshot of the following results.]')
+                st.write("**Time of submission:** ", localtime)
+                st.write("**Your results ID:** ", ID)
+                face = ''.join(data_face)
+                lip = ''.join(data_lip)
+                st.write("**Realism:** ", face)
+                st.write("**Lip_Sync:** ", lip)
+                st.session_state.button_clicked = True 
 
-    st.subheader(fr"Video {num} / {video_num}")
-    #st.write(file_list[num-1].rstrip())
-    video_bytes = play_video(file_list[num-1].rstrip())
-    #video_bytes = play_video(r"E:\UserStudy\Comparsion\2_scott_0_1_1.mp4")
-    st.video(video_bytes)
-
-    st.write("视频从左到右，依次对应第一、第二、第三人。")
-    st.write("请评分1 - 5，1为最差，5为最好。")
-    res = QA(human_likeness, smoothness, semantic_accuracy, num, method_num)
-
-    # 第1页
-    if st.session_state["page_num"] == 1:
-        if st.button("下一页"):
-            if res:
-                switch_page(st.session_state["page_num"] + 1)
-            else:
-                st.warning("请回答当前页问题！")
-
-    # 中间页
-    if num > 1 and num < video_num:
-        col1, col2 = st.columns(2)
-        if col2.button("上一页"):
-            switch_page(st.session_state["page_num"] - 1)
-        if col1.button("下一页"):
-            if res:
-                switch_page(st.session_state["page_num"] + 1)
-            else:
-                st.warning("请回答当前页问题！")
-
-    # 最后一页
-    if st.session_state["page_num"] == video_num:
-        col1, col2 = st.columns(2)
-        if "button_clicked" not in st.session_state:
-            st.session_state.button_clicked = False
-
-        if not st.session_state.button_clicked:
-            if col1.button("提交结果"):
-                if not res:
-                    st.warning("请回答当前页问题！")
-                else:
-                    st.write('提交中...请耐心等待...')
-                    count = read_email_(myemail, password)
-                    count += 1
-                    send_email(myemail, password, count)
-                    ID, localtime = data_collection(myemail, password, human_likeness, smoothness, semantic_accuracy, count)
-                    st.divider()
-                    st.markdown(':blue[请对下面的结果进行截图。]')
-                    st.write("**Result:**")
-                    st.write("human_likeness: ", str(human_likeness))
-                    st.write("smoothness: ", str(smoothness))
-                    st.write("semantic_accuracy: ", str(semantic_accuracy))
-                    st.write("**提交时间:** ", localtime)
-                    st.write("**提交ID:** ", ID)
-                    st.session_state.button_clicked = True 
-
-        if st.session_state.button_clicked == True:
-            st.cache_data.clear()
-            st.success("Successfully submitted the results. Thank you for using it. Now you can exit the system.")
-
-        if col2.button("上一页"):
-            switch_page(st.session_state["page_num"] - 1)
+    if st.session_state.button_clicked == True:
+        st.cache_data.clear()
+        st.success("Successfully submitted the results. Thank you for using it. Now you can exit the system.")
 
 
 if __name__ == '__main__':
+    dataset = 'BIWI' 
+    video_num = 18  # 每套试题的视频数量
+    times = 2  # 每个视频的答题次数
+
     st.set_page_config(page_title="userstudy")
-    #st.cache_data.clear() # 初始化
+    # st.cache_data.clear() # 初始化
     myemail = st.secrets["my_email"]["email"]  
     password =  st.secrets["my_email"]["password"]
-    video_num = 10
-    method_num = 3
-    dataset = "ablation"
+    
+    
+    array = read_email(myemail, password) # 返回试题编号列表
+    print(array)
+    # array = [0 for x in range(10)]
+    if all((element == times or element > times) for element in array):
+        array = [0] * random_range
 
-    count = read_email(myemail, password)
-    #st.write(count)
-
-    if count>=20: 
-        st.error("答题人数已满，感谢你的理解！")
-        st.cache_data.clear()
+    if "data_face" and "data_lip" not in st.session_state:
+        # 初始化data变量
+        data_face = [1 for x in range(video_num)]
+        data_lip = [1 for x in range(video_num)]
     else:
-        if "human_likeness" and "smoothness" and "semantic_accuracy" not in st.session_state:
-            human_likeness = [1 for x in range(video_num*method_num)]
-            smoothness = [1 for x in range(video_num*method_num)]
-            semantic_accuracy = [1 for x in range(video_num*method_num)]
-        else:
-            human_likeness = st.session_state["human_likeness"]
-            smoothness = st.session_state["smoothness"]
-            semantic_accuracy = st.session_state["semantic_accuracy"]
+        data_face = st.session_state["data_face"]
+        data_lip = st.session_state["data_lip"]
 
-        page(video_num, method_num)
+    random_num = 0
+
+    if 'random_num' not in st.session_state:
+        st.session_state.random_num = random.randint(0, random_range-1)  # 随机选择试题编号
+        if array[st.session_state.random_num] == times or array[st.session_state.random_num] > times :
+            while True:
+                st.session_state.random_num = random.randint(0, random_range-1)
+                if array[st.session_state.random_num] < times :
+                    break
+
+    random_num = st.session_state.random_num
+
+    page(random_num)
+
+

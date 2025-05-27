@@ -1,14 +1,21 @@
 import os
 import random
 
-dataset='BIWI'
+dataset='multiface'
+
+if dataset =='multiface':
+    num_videos = 18
+elif dataset == 'vocaset':
+    num_videos = 20
+elif dataset =="BIWI":
+    num_videos = 20
 
 file_list = [
     f"{dataset}_voca.txt",
     f"{dataset}_meshtalk.txt",
     f"{dataset}_faceformer.txt",
     f"{dataset}_codetalker.txt",
-    f"{dataset}_selftalk.txt",
+    f"{dataset}_corrtalk.txt",
     f"{dataset}_diffspeaker.txt",
     f"{dataset}_talkingstyle.txt",
     f"{dataset}_facediffuser.txt",
@@ -22,12 +29,12 @@ result_file = open(out_filename, 'w')
 
 selected_name = []
 # 每个方法选择18个视频
-for _ in range(18):
+for _ in range(num_videos):
     # 创建一个空的列表用于存放已经取出的行
     selected_lines = []
 
     for file in file_list:
-        with open('filename/' + file, 'r') as f:
+        with open('filename/' + file, 'r') as f:   #不区分大小写
             lines = f.readlines()
         selected_line = random.sample(lines, 1)  # 随机取出1行
         if selected_line in selected_name:
