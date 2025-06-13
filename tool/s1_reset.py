@@ -40,8 +40,8 @@ if __name__ == '__main__':
 
     array=[0 for x in range(10)]
     array1=[0 for x in range(9)]
-    send_email(myemail, password, array, 'BIWI')
-    send_email(myemail, password, array, 'vocaset')
+    # send_email(myemail, password, array, 'BIWI')
+    # send_email(myemail, password, array, 'vocaset')
     send_email(myemail, password, array1, 'multiface')
 
 

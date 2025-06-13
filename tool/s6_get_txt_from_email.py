@@ -40,7 +40,8 @@ def download_txt_attachment_pop3(myemail, password, dataset, save_path='./'):
                 print(f'找到符合条件的邮件：{subject}')
 
                 # 构建文件路径，文件名为邮件标题，替换无效字符
-                filename = f"{subject.replace('/', '_').replace('\\', '_')}.txt"
+         
+                filename = f"{subject.replace('/', '_').replace('/', '_')}.txt"
                 filepath = os.path.join(save_path, filename)
 
                 # 提取邮件正文
@@ -66,7 +67,8 @@ myemail = st.secrets["my_email"]["email"]
 password = st.secrets["my_email"]["password"]
 
 # 设置数据集和保存路径
-type = ["BIWI", "vocaset", "multiface"]
+# type = ["BIWI", "vocaset", "multiface"]
+type = ["multiface"]
 for dataset in type:
     title = dataset + '_'
     save_path = f'./result/{dataset}'

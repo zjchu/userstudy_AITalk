@@ -4,7 +4,7 @@ import random
 dataset='multiface'
 
 if dataset =='multiface':
-    num_videos = 18
+    num_videos = 20
 elif dataset == 'vocaset':
     num_videos = 20
 elif dataset =="BIWI":

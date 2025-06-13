@@ -9,8 +9,8 @@ biwi_face = {
     "biwi_faceformer_faceformer_face": 0,
     "biwi_codetalker_ours_face": 0,
     "biwi_codetalker_codetalker_face": 0,
-    "biwi_selftalk_ours_face": 0,
-    "biwi_selftalk_gt_face": 0,
+    "biwi_corrtalk_ours_face": 0,
+    "biwi_corrtalk_corrtalk_face": 0,
     "biwi_diffspeaker_ours_face": 0,
     "biwi_diffspeaker_gt_face": 0,
     "biwi_talkingstyle_ours_face": 0,
@@ -30,8 +30,8 @@ biwi_lip = {
     "biwi_faceformer_faceformer_lip": 0,
     "biwi_codetalker_ours_lip": 0,
     "biwi_codetalker_codetalker_lip": 0,
-    "biwi_selftalk_ours_lip": 0,
-    "biwi_selftalk_gt_lip": 0,
+    "biwi_corrtalk_ours_lip": 0,
+    "biwi_corrtalk_corrtalk_lip": 0,
     "biwi_diffspeaker_ours_lip": 0,
     "biwi_diffspeaker_gt_lip": 0,
     "biwi_talkingstyle_ours_lip": 0,
@@ -47,7 +47,7 @@ keyname = {
     "meshtalk": 1,
     "faceformer": 2,
     "codetalker": 3,
-    'selftalk': 4,
+    'corrtalk': 4,
     'diffspeaker': 5,
     'talkingstyle': 6,
     'facediffuser': 7,
@@ -60,7 +60,7 @@ biwi_realism = {
     "biwi_meshtalk_realism": 0,
     "biwi_faceformer_realism": 0,
     "biwi_codetalker_realism": 0,
-    "biwi_selftalk_realism": 0,
+    "biwi_corrtalk_realism": 0,
     "biwi_diffspeaker_realism": 0,
     "biwi_talkingstyle_realism": 0,
     "biwi_facediffuser_realism": 0,
@@ -72,28 +72,14 @@ biwi_lip_sync = {
     "biwi_meshtalk_lip_sync": 0,
     "biwi_faceformer_lip_sync": 0,
     "biwi_codetalker_lip_sync": 0,
-    "biwi_selftalk_lip_sync": 0,
+    "biwi_corrtalk_lip_sync": 0,
     "biwi_diffspeaker_lip_sync": 0,
     "biwi_talkingstyle_lip_sync": 0,
     "biwi_facediffuser_lip_sync": 0,
     "biwi_gt_lip_sync": 0,
 }
 
-def main():
-    folder_path = r"result/BIWI"
-    file_list = os.listdir(folder_path)
 
-    for file_name in file_list:
-        if "BIWI" in file_name:
-            file_path = os.path.join(folder_path, file_name)
-            
-            with open(file_path, "r") as file:
-                file_content = file.read()
-                digits = [char for char in file_content if char.isdigit()]
-                array = [int(digit) for digit in digits]
-                
-                count(array)
-    compution()
 
 def count(array):
     global biwi_face, biwi_lip
@@ -123,6 +109,7 @@ def count(array):
     for key, value in biwi_face.items(): 
         for index, element in enumerate(array):
             for idx, name in enumerate(keyname):
+ 
                 if name in key and index in face_indices[idx]:
                     if element == 1 and "ours" in key:
                         biwi_face[key]+=1
@@ -168,6 +155,23 @@ def compution():
         print(key, value)    
 
     return biwi_realism, biwi_lip_sync
+
+
+def main():
+    folder_path = r"result/BIWI"
+    file_list = os.listdir(folder_path)
+
+    for file_name in file_list:
+        if "BIWI" in file_name:
+            file_path = os.path.join(folder_path, file_name)
+            
+            with open(file_path, "r") as file:
+                file_content = file.read()
+                digits = [char for char in file_content if char.isdigit()]
+                array = [int(digit) for digit in digits]
+              
+                count(array)
+    compution()
 
 if __name__=='__main__':
     main()

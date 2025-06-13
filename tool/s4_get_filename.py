@@ -1,6 +1,6 @@
 import os
 
-dataset = "vocaset"
+dataset = "multiface"
 
 folder_list = {
     f"user_study/{dataset}/CodeTalker",
